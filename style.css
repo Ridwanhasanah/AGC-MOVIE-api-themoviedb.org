@@ -1,0 +1,25 @@
+.rh-pagination{
+	display: inline-block;
+}
+
+.rh-pagination a{
+	color: black;
+	float: left;
+	padding: 8px 16px;
+	text-decoration: none;
+}
+.rh-pagination a:visited{
+	color: red;
+	float: left;
+	padding: 8px 16px;
+	text-decoration: none;
+}
+
+.rh-pagination a.active{
+	background-color: #4caf50;
+	color: red;
+}
+
+.rh-pagination a:hover:not(.active){
+	background-color: #ddd;
+}
