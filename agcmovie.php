@@ -162,10 +162,13 @@ function rh_agc_movie_virtual_page($posts){
 
 function rh_agc_movie_detail($movie_id){
 
+	$options = get_option("rh-agc-movie-parameter" );
+	extract($options);
+
 	$parameters   = array();
 	$parameters[] = 'append_to_response=images,trailers,similar_movies';
-	$parameters[] = 'include_adult=false';
-	$parameters[] = 'sort_by=popularity.desc';
+	$parameters[] = 'include_adult='.$adult;
+	$parameters[] = 'sort_by='.$sortby;
 
 	$params       = '';
 
@@ -174,7 +177,7 @@ function rh_agc_movie_detail($movie_id){
 		$params = implode('&', $parameters);
 	}
 
-	$api_key    = 'd5dbdf1e3e3de7f364230240dcea83ee';
+	$api_key    = $apikey;//'d5dbdf1e3e3de7f364230240dcea83ee';
 	$source_url = 'https://api.themoviedb.org/3/movie/{movie-id}?api_key={api-key}&{parameters}';
 	$source_url = str_replace(array('{movie-id}','{api-key}','{parameters}'), array($movie_id, $api_key, $params), $source_url);
 
@@ -190,8 +193,9 @@ function rh_agc_movie_detail($movie_id){
 	$overview = $data->overview;
 
 	shuffle($data->images->posters);
-	$poster  = $data->images->posters[0]->file_path;
+	$poster   = $data->images->posters[0]->file_path;
 	$release  = $data->release_date;
+	$year     = array_shift(explode('-', $release));
 	$runtime  = $data->runtime;
 	$spoken   = $data->spoken_languages[0]->name;
 	$tagline  = $data->tagline;
@@ -204,7 +208,27 @@ function rh_agc_movie_detail($movie_id){
 	$poster      = str_replace('{file-name}', $poster, $poster_url_template);
 	$backdrop    = str_replace('{file-name}', $backdrop, $backdrop_url_template);
 
-	$html = '<figure><img src="'.$backdrop.'"width="100%"/></figure>'.
+	$the_similar = '';
+	foreach ($similar as $im) {
+		if (!empty($sim->poster_path)) {
+			$image_url = str_replace('{file-name', $sim->poster_path, $poster_url_template);
+			$the_similar .= '<span style="margin:10px;">'.
+						    '<a href="'.get_home_url().'/'.$sim->id.'-'.sanitize_title($sim->title).'">'.
+						    '<img src="'.$image_url.'"width="100 height=150" alt="'.$sim->title.'" title="'.$sim->title.'"/>'.
+						    '</a></span>';
+		}
+	}
+
+	$the_similar .= '<div style="clear:both"></div>';
+
+	$options = get_option("rh-agc-movie-template" );
+	extract($options);
+
+	if ($template) {
+		$template = '<figure><img src="{backdrop}"></figure><p>{overview}</p>{similar}';
+	}
+
+	/*$html = '<figure><img src="'.$backdrop.'"width="100%"/></figure>'.
 			'<h2>'.$tagline.'</h2>'.
 			'<p>'.$overview.'</p>'.
 			'<div class="video_container">'.
@@ -231,7 +255,35 @@ function rh_agc_movie_detail($movie_id){
 		}
 	}
 
-	$html .= '<div style="clear:both;"></div>';
+	$html .= '<div style="clear:both;"></div>';*/
+
+	$html = str_replace(array(
+							'{title}', 
+							'{tagline}', 
+							'{overview}',
+							'{trailer}',
+							'{poster}',
+							'{backdrop}',
+							'{genre}',
+							'{spoken}', 
+							'{homepage}', 
+							'{similar}', 
+							'{release}', 
+							'{year}'),
+						array(
+							$title, 
+							$tagline, 
+							$overview, 
+							$trailer, 
+							$poster, 
+							$backdrop, 
+							$genre,
+							$spoken, 
+							$homepage, 
+							$the_similar, 
+							$release, 
+							$year),
+						html_entity_decode($template) );
 
 	return $html;
 }
@@ -241,6 +293,7 @@ function rh_agc_movie_detail($movie_id){
 
 
 /*======= MENU & OPTIONS START  =========*/
+	/*======= MENU START  =========*/
 
 add_action('admin_menu','rh_agc_moive_menu');
 
@@ -254,7 +307,26 @@ function rh_agc_moive_menu(){
 		'rh_agc_movie_options',
 		plugin_dir_url(__FILE__).'movie-icon.png');
 
+	add_submenu_page(
+		'agc-movie',
+		'Api Parameter',
+		'Api Parameter',
+		'manage_options',
+		'agc-movie',
+		'rh_agc_movie_options' );
+
+	add_submenu_page(
+		'agc-movie',
+		'Temaplate',
+		'Temaplate',
+		'manage_options',
+		'agc-movie-template',
+		'rh_agc_movie_template_options' );
+
 }
+	/*======= MENU End  =========*/
+
+	/*======= OPTIONS START  =========*/
 
 function rh_agc_movie_options(){
 
@@ -347,6 +419,37 @@ function rh_agc_movie_options(){
 		<?php
 	
 }
+
+function rh_agc_movie_template_options(){
+
+	echo '<h2>AGC Movie</h2>';
+
+	if ($_POST['rh-agc-movie-template-submit']) {
+		
+		$options['template'] = htmlentities(stripcslashes($_POST['template'] ) );
+		update_option("rh-agc-movie-template",$options );
+		echo '<div class="updated"><p><b>Updated Saved.</b></p></div>';
+
+	}
+
+	$options = get_option("rh-agc-movie-template" );
+	extract($options);
+
+	if (empty($template)) {
+		$template = '<figure><img src="{backdrop}"></figure><p>{overview}</p>{similiar}';
+	}
+	?>
+	<form method="post">
+		<label for="template">Template</label><br><br>
+		{title}, {tagline}, {overview}, {trailer},  {poster}, {backdrop}, {genre}, {spoken}, {homepage}, {similar}, {release}, {year}
+		<br>
+		<textarea cols="100" rows="15" id="template" name="template"><?php echo html_entity_decode($template); ?></textarea><br>
+		<input type="submit" name="rh-agc-movie-template-submit" name="rh-agc-movie-template-submit" class="button" value="Save">
+	</form>
+	<?php
+}
+	/*======= OPTIONS End  =========*/
+
 /*======= MENU & OPTIONS END  =========*/
 
 ?>
