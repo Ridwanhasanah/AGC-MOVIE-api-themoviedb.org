@@ -8,6 +8,8 @@
   Author URI: https://www.facebook.com/ridwan.hasanah3
 */
 
+//my apikey d5dbdf1e3e3de7f364230240dcea83ee
+
 add_shortcode('agc-movie', 'rh_agc_movie_index' );
 
 function rh_agc_movie_index(){
@@ -20,13 +22,16 @@ function rh_agc_movie_index(){
 
 	}
 
+	$options = get_option("rh-agc-movie-parameter" );
+	extract($options);
+
 	$parameters = array();
 
-	$parameters[] = 'with_genres=18';
-	$parameters[] = 'primary_relese_year=2017';
+	$parameters[] = 'with_genres='.$genre;
+	$parameters[] = 'primary_relese_year='.$year;
 	$parameters[] = 'page={page}';
-	$parameters[] = 'include_adult=false';
-	$parameters[] = 'sort_by=popularity.desc';
+	$parameters[] = 'include_adult='.$adult;
+	$parameters[] = 'sort_by='.$sortby;
 
 	$params = '';
 
@@ -35,7 +40,7 @@ function rh_agc_movie_index(){
 
 	}
 
-	$api_key = 'd5dbdf1e3e3de7f364230240dcea83ee';
+	$api_key = $apikey;
 
 	$source_url = 'https://api.themoviedb.org/3/discover/movie?api_key={api-key}&{parameters}';
 	$source_url = str_replace(array('{api-key}','{parameters}'), array($api_key, $params), $source_url);
@@ -45,10 +50,10 @@ function rh_agc_movie_index(){
 	$data = json_decode(file_get_contents($source_url) );
 	$poster_url_template = 'http://image.tmdb.org/t/p/original{file-name}?w=100';
 	//gunakan link ini http://i0.wp.com/image.tmdb.org/t/p/original{file-name}?w=100 jika ingin menggunkan jetpack agar lebih cepat
-	echo '<pre>';
+	/*echo '<pre>';
 	echo get_home_url().'<br>';
 	print_r(esc_url( get_page_link() ));
-	echo '</pre>';
+	echo '</pre>';*/
 
 
 	$total_pages = $data->total_pages;
@@ -232,5 +237,116 @@ function rh_agc_movie_detail($movie_id){
 }
 
 /*======= Virtual Page Detail MOvie End =========*/
+
+
+
+/*======= MENU & OPTIONS START  =========*/
+
+add_action('admin_menu','rh_agc_moive_menu');
+
+function rh_agc_moive_menu(){
+
+	add_menu_page(
+		'AGC MOVIE', 
+		'AGC MOVIE', 
+		'manage_options', 
+		'agc-movie', 
+		'rh_agc_movie_options',
+		plugin_dir_url(__FILE__).'movie-icon.png');
+
+}
+
+function rh_agc_movie_options(){
+
+	echo '<h2>AGC MOVIE</h2>';
+
+	if ($_POST['rh-agc-movie-parameter-submit']) {
+
+		$options['apikey'] = $_POST['apikey'];
+		$options['year']   = $_POST['year'];
+		$options['genre']  = $_POST['genre'];
+		$options['adult']  = $_POST['adult'];
+		$options['sortby'] = $_POST['sortby'];
+
+		update_option("rh-agc-movie-parameter",$options);
+
+		echo '<div class="updated"><p><strong>Options Saved.</strong></p></div>';
+	}	
+
+
+		$options = get_option("rh-agc-movie-parameter");
+		extract($options);
+
+		?>
+			<form method="post">
+				<table>
+					<tr>
+						<td><label for="api-key">API KEY</label></td>
+						<td><input type="text" size="40" name="apikey" id="apikey" value="<?php echo $apikey; ?>"></td>
+					</tr>
+					<tr>
+						<td><label for="year">YEAR</label></td>
+						<td><input type="text" name="year" id="year" size="5" value="<?php echo $year; ?>"></td>
+					</tr>
+					<tr>
+						<td><label for="genre">GENRE</label></td>
+						<td>
+							<select id="genre" name="genre">
+								<optgroup>
+									<option value="">SELECT</option>
+								</optgroup>
+								<optgroup label="----------------------------">
+									<option value="28" <?php if($genre==28) echo 'SELECTED'; ?>>Action</option>
+									<option value="12" <?php if($genre==12) echo 'SELECTED'; ?>>Adventure</option>
+									<option value="16" <?php if($genre==16) echo 'SELECTED'; ?>>Animation</option>
+									<option value="35" <?php if($genre==35) echo 'SELECTED'; ?>>Comedy</option>
+									<option value="80" <?php if($genre==80) echo 'SELECTED'; ?>>Crime</option>
+									<option value="18" <?php if($genre==18) echo 'SELECTED'; ?>>Drama</option>
+									<option value="10751" <?php if($genre==10751) echo 'SELECTED'; ?>>Family</option>
+									<option value="14" <?php if($genre==14) echo 'SELECTED'; ?>>Fantasy</option>
+									<option value="36" <?php if($genre==36) echo 'SELECTED'; ?>>History</option>
+									<option value="27" <?php if($genre==27) echo 'SELECTED'; ?>>Horror</option>
+									<option value="10402" <?php if($genre==10402) echo 'SELECTED'; ?>>Music</option>
+									<option value="9648" <?php if($genre==9648) echo 'SELECTED'; ?>>Mystery</option>
+									<option value="10749" <?php if($genre==10749) echo 'SELECTED'; ?>>Romance</option>
+									<option value="878" <?php if($genre==878) echo 'SELECTED'; ?>>Scince Fiction</option>
+									<option value="10770" <?php if($genre==10770) echo 'SELECTED'; ?>>TV Movie</option>
+									<option value="53" <?php if($genre==53) echo 'SELECTED'; ?>>Thriller</option>
+									<option value="10752" <?php if($genre==10752) echo 'SELECTED'; ?>>WAR</option>
+									<option value="37" <?php if($genre==37) echo 'SELECTED'; ?>>Western</option>
+								</optgroup>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<td><label for="adul">Adult ?</label></td>
+						<td>
+							<select id="adult" name="adult">
+								<option value="false" <?php if($adult==false) echo 'SELECTED'?>>NO</option>
+								<option value="true" <?php if($adult==true) echo 'SELECTED'?>>YES</option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<td><label for="sortby">Sort by</label></td>
+						<td>
+							<select id="sortby" name="sortby">
+								<option value="popularity.desc" <?php if($sortby=='popularity.desc')?>>Popularity</option>
+								<option value="revenue.desc" <?php if($sortby=='revenue.desc')?>>Revenue</option>
+								<option value="release_date.desc" <?php if($sortby=='release_date.desc')?>>Release Date</option>
+								<option value="vote_average.desc" <?php if($sortby=='vote_average.desc')?>>Popularity</option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<td></td>
+						<td><input type="submit" name="rh-agc-movie-parameter-submit" id="rh-agc-movie-parameter-submit" value="Save" class="button"></td>
+					</tr>
+				</table>
+			</form>
+		<?php
+	
+}
+/*======= MENU & OPTIONS END  =========*/
 
 ?>
