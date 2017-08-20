@@ -181,8 +181,42 @@ function rh_agc_movie_detail($movie_id){
 	$source_url = 'https://api.themoviedb.org/3/movie/{movie-id}?api_key={api-key}&{parameters}';
 	$source_url = str_replace(array('{movie-id}','{api-key}','{parameters}'), array($movie_id, $api_key, $params), $source_url);
 
+	$dir = dirname(__FILE__);
+	$cache_id = md5($movie_id.$params);
 
-	$data                  = json_decode(file_get_contents($source_url) );
+	$options = get_option('rh-agc-movie-cache' );
+	if (!is_array($options)) {
+		
+		$options = array(
+					'cache'=>'false',
+					'cachetype'=>'textfile');
+	}
+
+	extract($options);
+
+	if (($cache=='true')&&($cachetype=='textfile')) {
+		
+		$cache_file = "$dir/cache/$cache_id.txt";
+		if (!file_exists($cache_file)) {
+			if (!file_exists("$dir/cache")) {
+				if (!is_writable($dir)) {
+					chmod($dit, 0755);
+				}
+
+				mkdir("$dir/cache",0755);
+			}
+
+			$data = file_get_contents($source_url);
+			file_put_contents($cache_file, $data);
+		}
+
+		$data = json_decode(file_get_contents($cache_file));
+	}else{
+
+		$data = json_decode(file_get_contents($source_url) );
+
+	}
+	
 	$poster_url_template   = 'http://image.tmdb.org/t/p/original{file-name}?w=100';
 	$backdrop_url_template = 'http://image.tmdb.org/t/p/original{file-name}?w=500';
 
@@ -207,6 +241,8 @@ function rh_agc_movie_detail($movie_id){
 	$total_pages = $data->similar_movies->total_pages;
 	$poster      = str_replace('{file-name}', $poster, $poster_url_template);
 	$backdrop    = str_replace('{file-name}', $backdrop, $backdrop_url_template);
+
+/*================================================================================================================================*/
 
 	$the_similar = '';
 	foreach ($similar as $im) {
@@ -272,7 +308,7 @@ function rh_agc_movie_detail($movie_id){
 							'{year}'),
 						array(
 							$title, 
-							$tagline, 
+							$tagline,  
 							$overview, 
 							$trailer, 
 							$poster, 
@@ -315,13 +351,21 @@ function rh_agc_moive_menu(){
 		'agc-movie',
 		'rh_agc_movie_options' );
 
-	add_submenu_page(
+	add_submenu_page(  //submenu untk template
 		'agc-movie',
 		'Temaplate',
 		'Temaplate',
 		'manage_options',
 		'agc-movie-template',
 		'rh_agc_movie_template_options' );
+
+	add_submenu_page(
+		'agc-movie',
+		'Cache',
+		'Cache',
+		'manage_options',
+		'agc-movie-cache',
+		'rh_agc_movie_cache_options' );
 
 }
 	/*======= MENU End  =========*/
@@ -420,6 +464,7 @@ function rh_agc_movie_options(){
 	
 }
 
+/* Function Template*/
 function rh_agc_movie_template_options(){
 
 	echo '<h2>AGC Movie</h2>';
@@ -448,6 +493,68 @@ function rh_agc_movie_template_options(){
 	</form>
 	<?php
 }
+
+
+/* Function Cache*/
+
+function rh_agc_movie_cache_options(){
+
+	echo '<h2>AGC Movie</h2>';
+
+	if ($_POST['rh-agc-movie-cache-submit']) {
+		
+		$options['cache'] = $_POST['cache'];
+		$options['cachetype'] = $_POST['cachetype'];
+
+		update_option('rh-agc-movie-cache', $options );
+		echo '<div class="updated"><p><b>Updated Saved.</b></p></div>';
+
+
+	}
+
+	$options = get_option('rh-agc-movie-cache');
+
+	if (!is_array($options)) {
+		
+		$options = array(
+					'cache'=>'false',
+					'cachetype'=>'textfile');
+	}
+
+	extract($options);
+
+	?>
+	<form method="post">
+		<table>
+			<tr>
+				<td><label for="cache">Save Cache ?</label></td>
+				<td>
+					<select id="cache" name="cache">
+						<option value="true" <?php if($cache == 'true')echo 'SELECTED'; ?>>YES</option>
+						<option value="fasle" <?php if($cache == 'false')echo 'SELECTED'; ?>>NO</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td><label for="cachetype">Cache Type</label></td>
+				<td>
+					<select id="cachetype" name="cachetype">
+						<option value="textfile" <?php if($cachetype == 'textfile') echo 'SELECTED'; ?>>Text File</option>
+						<option value="phpfastcache" <?php if($cachetype == 'phpfastcache') echo 'SELECTED'; ?>>PHP Fast Cache</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>
+					<input type="submit" name="rh-agc-movie-cache-submit" id="rh-agc-movie-cache-submit" class="button" value="Save">
+				</td>
+			</tr>
+		</table>
+	</form>
+	<?php
+}
+
 	/*======= OPTIONS End  =========*/
 
 /*======= MENU & OPTIONS END  =========*/
