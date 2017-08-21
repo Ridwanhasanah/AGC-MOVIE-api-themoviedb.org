@@ -7,7 +7,7 @@
   Author: Ridwan Hasanah
   Author URI: https://www.facebook.com/ridwan.hasanah3
 */
-
+use phpFastCache\CacheManager;
 //my apikey d5dbdf1e3e3de7f364230240dcea83ee
 
 add_shortcode('agc-movie', 'rh_agc_movie_index' );
@@ -181,6 +181,8 @@ function rh_agc_movie_detail($movie_id){
 	$source_url = 'https://api.themoviedb.org/3/movie/{movie-id}?api_key={api-key}&{parameters}';
 	$source_url = str_replace(array('{movie-id}','{api-key}','{parameters}'), array($movie_id, $api_key, $params), $source_url);
 
+/*===============================================================================================================================*/
+
 	$dir = dirname(__FILE__);
 	$cache_id = md5($movie_id.$params);
 
@@ -211,6 +213,26 @@ function rh_agc_movie_detail($movie_id){
 		}
 
 		$data = json_decode(file_get_contents($cache_file));
+
+	}elseif (($cache == 'true')&&($cache_file=='phpfastcache')) {
+		
+		require_once dirname(__FILE__).'/phpfastcache/src/autoload.php';
+		CacheManager::setup(array( 
+			'path'=>dirname(__FILE__),
+			'securityKey'=>'cache') );
+
+		$cache  = CacheManager::getInstance('sqlite');
+		$result = $cache->getItem($cache_id);
+		if (empty($result->get())) {
+			
+			$data = file_get_contents($source_url);
+			$result->set($data)->expiresAfter(86400);
+			$cache->save($result);
+			$result = $cache->getItem($cache_id);
+
+		}
+
+		$data = json_decode($result->get());
 	}else{
 
 		$data = json_decode(file_get_contents($source_url) );
@@ -447,10 +469,18 @@ function rh_agc_movie_options(){
 						<td><label for="sortby">Sort by</label></td>
 						<td>
 							<select id="sortby" name="sortby">
-								<option value="popularity.desc" <?php if($sortby=='popularity.desc')?>>Popularity</option>
-								<option value="revenue.desc" <?php if($sortby=='revenue.desc')?>>Revenue</option>
-								<option value="release_date.desc" <?php if($sortby=='release_date.desc')?>>Release Date</option>
-								<option value="vote_average.desc" <?php if($sortby=='vote_average.desc')?>>Popularity</option>
+								<option value="popularity.desc" <?php if($sortby=='popularity.desc') echo 'SELECTED';?>>
+									Popularity
+								</option>
+								<option value="revenue.desc" <?php if($sortby=='revenue.desc') echo 'SELECTED';?>>
+									Revenue
+								</option>
+								<option value="release_date.desc" <?php if($sortby=='release_date.desc') echo 'SELECTED';?>>
+									Release Date
+								</option>
+								<option value="vote_average.desc" <?php if($sortby=='vote_average.desc') echo 'SELECTED';?>>
+									Vote Average
+								</option>
 							</select>
 						</td>
 					</tr>
